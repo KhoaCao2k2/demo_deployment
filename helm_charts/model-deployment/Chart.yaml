@@ -1,0 +1,13 @@
+apiVersion: v2
+name: model-deployment
+description: Helm Chart for OCR Model Deployment
+
+type: application
+
+version: 0.1.0
+
+appVersion: "1.0.0"
+
+maintainers:
+- email: caohuynhanhkhoa2002@gmail.com
+  name: Cao Huynh Anh Khoa

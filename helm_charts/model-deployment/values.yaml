@@ -1,0 +1,4 @@
+image:
+  repository: khoacao2002/ocr_demo
+  tag: latest
+  pullPolicy: Always
