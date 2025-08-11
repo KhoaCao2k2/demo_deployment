@@ -1,3 +1,8 @@
 # Byte-compiled / optimized / DLL files
 __pycache__/
 
+iac/terraform/*.json
+iac/terraform/terraform.tfstate*
+iac/terraform/.terraform.lock.hcl
+iac/terraform/.terraform
+iac/ansible/*.json
