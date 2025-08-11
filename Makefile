@@ -30,10 +30,12 @@ destroy-infra:
 helm-chart:
 	cd helm_charts/nginx-ingress && helm install nginx-ingress .
 	cd helm_charts/model-deployment && helm install model-deployment .
+	helm upgrade --install -f helm_charts/monitoring/kube-prometheus-stack.expanded.yaml kube-prometheus-stack helm_charts/monitoring/kube-prometheus-stack -n monitoring
 
 uninstall-helm-chart:
 	helm uninstall nginx-ingress
 	helm uninstall model-deployment
+	helm uninstall kube-prometheus-stack
 
 set-up-gce:
 	ansible-playbook -i iac/ansible/inventory iac/ansible/setup-gce/create-gce.yaml

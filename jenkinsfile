@@ -1,0 +1,52 @@
+pipeline {
+    agent any
+
+    options{
+        // Max number of build logs to keep and days to keep
+        buildDiscarder(logRotator(numToKeepStr: '5', daysToKeepStr: '5'))
+        // Enable timestamp at each job in the pipeline
+        timestamps()
+    }
+
+    environment{
+        registry = 'khoacao2002/ocr_demo'
+        registryCredential = 'dockerhub'
+    }
+
+    stages {
+        // stage('Build') {
+        //     steps {
+        //         script {
+        //             echo 'Building image for deployment..'
+        //             dockerImage = docker.build registry + ":v$BUILD_NUMBER" 
+        //             echo 'Pushing image to dockerhub..'
+        //             docker.withRegistry( '', registryCredential ) {
+        //                 dockerImage.push()
+        //                 dockerImage.push('latest')
+        //             }
+        //         }
+        //     }
+        // }
+
+        stage('Deploy to Google Kubernetes Engine') {
+            agent {
+                kubernetes {
+                    containerTemplate {
+                        name 'helm' // Name of the container to be used for helm upgrade
+                        image 'khoacao2002/jenkins_custom:v1' // The image containing helm
+                    }
+                }
+            }
+            steps {
+                script {
+                    container('helm') {
+                        sh("helm upgrade --install  nginx-ingress ./helm_charts/nginx-ingress")
+                    }
+                    container('helm') {
+                        sh("helm upgrade --install  model-deployment ./helm_charts/model-deployment")
+                    }
+                }
+            }
+        }
+    }
+}
