@@ -1,4 +1,13 @@
+# Namespace configuration
+namespace: model-serving
+
+# Image configuration
 image:
   repository: khoacao2002/ocr_demo
   tag: latest
   pullPolicy: Always
+
+# Application configuration
+replicas: 1
+port: 8080
+servicePort: 30000
