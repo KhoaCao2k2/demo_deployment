@@ -17,5 +17,5 @@ variable "self_link" {
 
 variable "key" {
   description = "The key to use for the project"
-  default = "mlops-463107-8f939268fde5.json"
+  default = "../ansible/mlops-463107-ac96c50dd2db.json"
 }
