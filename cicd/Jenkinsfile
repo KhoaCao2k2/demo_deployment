@@ -11,7 +11,6 @@ pipeline {
     environment{
         registry = 'khoacao2002/ocr_demo'
         registryCredential = 'dockerhub'
-        IMAGE_TAG = "${env.BUILD_NUMBER}"
     }
 
     stages {
@@ -23,7 +22,7 @@ pipeline {
                     sh 'ls -la'
                     sh 'ls -la app/ || echo "app directory not found"'
                     
-                    dockerImage = docker.build("${registry}:${IMAGE_TAG}", "-f app/Dockerfile app")
+                    dockerImage = docker.build("${registry}", "-f app/Dockerfile app")
                     dockerImage.tag("latest")
                 }
             }
@@ -32,32 +31,31 @@ pipeline {
             steps{
                 script {
                     docker.withRegistry( 'https://registry.hub.docker.com', registryCredential ) {
-                        dockerImage.push("${IMAGE_TAG}")
                         dockerImage.push("latest")
                     }
                 }
             }
         }
-        stage('Deploy to Google Kubernetes Engine') {
-            agent {
-                kubernetes {
-                    containerTemplate {
-                        name 'helm' // Name of the container to be used for helm upgrade
-                        image 'khoacao2002/jenkins_custom:v1' // The image containing helm
-                    }
-                }
-            }
-            steps {
-                script {
-                    container('helm') {
-                        sh("helm upgrade --install  nginx-ingress helm_charts/nginx-ingress")
-                    }
-                    container('helm') {
-                        sh("helm upgrade --install  model-deployment helm_charts/model-deployment")
-                    }
-                }
-            }
-        }
+        // stage('Deploy to Google Kubernetes Engine') {
+        //     agent {
+        //         kubernetes {
+        //             containerTemplate {
+        //                 name 'helm' // Name of the container to be used for helm upgrade
+        //                 image 'khoacao2002/jenkins_custom:v1' // The image containing helm
+        //             }
+        //         }
+        //     }
+        //     steps {
+        //         script {
+        //             container('helm') {
+        //                 sh("helm upgrade --install  nginx-ingress helm_charts/nginx-ingress")
+        //             }
+        //             container('helm') {
+        //                 sh("helm upgrade --install  model-deployment helm_charts/model-deployment")
+        //             }
+        //         }
+        //     }
+        // }
         
         stage('test') {
             steps {
