@@ -262,6 +262,11 @@ helm upgrade model-deployment ./helm_charts/model-deployment --set replicaCount=
 2. **Image processing errors**: Check supported image formats and file sizes
 3. **Kubernetes deployment issues**: Verify Helm chart values and cluster resources
 4. **Monitoring not working**: Check Prometheus service discovery and targets
+5. **Jenkins build failures**: 
+   - Check workspace structure with `./debug-workspace.sh`
+   - Verify Docker build locally with `./test-docker-build.sh`
+   - Ensure Docker Hub credentials are configured in Jenkins
+   - Check that the app directory is properly cloned in Jenkins workspace
 
 ### Debug Commands
 

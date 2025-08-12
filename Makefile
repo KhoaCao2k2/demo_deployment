@@ -4,7 +4,7 @@ PORT = 8080
 
 # Build Docker image
 build-app:
-	docker build -f app/Dockerfile -t $(IMAGE_NAME) app
+	cd app && docker build -f Dockerfile -t $(IMAGE_NAME) .
 
 # Run Docker container
 run-app:

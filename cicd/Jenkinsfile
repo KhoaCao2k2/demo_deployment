@@ -11,6 +11,7 @@ pipeline {
     environment{
         registry = 'khoacao2002/ocr_demo'
         registryCredential = 'dockerhub'
+        IMAGE_TAG = "${env.BUILD_NUMBER}"
     }
 
     stages {
@@ -18,7 +19,12 @@ pipeline {
             steps {
                 script {
                     echo 'Building image for deployment..'
-                    dockerImage = docker.build("${registry}", "-f ../app/Dockerfile ../app")
+                    // Check if app directory exists
+                    sh 'ls -la'
+                    sh 'ls -la app/ || echo "app directory not found"'
+                    
+                    dockerImage = docker.build("${registry}:${IMAGE_TAG}", "-f app/Dockerfile app")
+                    dockerImage.tag("${registry}:latest")
                 }
             }
         }
@@ -26,6 +32,7 @@ pipeline {
             steps{
                 script {
                     docker.withRegistry( 'https://registry.hub.docker.com', registryCredential ) {
+                        dockerImage.push("${IMAGE_TAG}")
                         dockerImage.push("latest")
                     }
                 }
@@ -43,10 +50,10 @@ pipeline {
             steps {
                 script {
                     container('helm') {
-                        sh("helm upgrade --install  nginx-ingress ./helm_charts/nginx-ingress")
+                        sh("helm upgrade --install  nginx-ingress helm_charts/nginx-ingress")
                     }
                     container('helm') {
-                        sh("helm upgrade --install  model-deployment ./helm_charts/model-deployment")
+                        sh("helm upgrade --install  model-deployment helm_charts/model-deployment")
                     }
                 }
             }
@@ -56,6 +63,19 @@ pipeline {
             steps {
                 echo 'test'
             }
+        }
+    }
+    
+    post {
+        always {
+            // Clean up workspace
+            cleanWs()
+        }
+        success {
+            echo 'Pipeline completed successfully!'
+        }
+        failure {
+            echo 'Pipeline failed!'
         }
     }
 }
