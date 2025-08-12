@@ -14,19 +14,19 @@ pipeline {
     }
 
     stages {
-        // stage('Build') {
-        //     steps {
-        //         script {
-        //             echo 'Building image for deployment..'
-        //             dockerImage = docker.build registry + ":v$BUILD_NUMBER" 
-        //             echo 'Pushing image to dockerhub..'
-        //             docker.withRegistry( '', registryCredential ) {
-        //                 dockerImage.push()
-        //                 dockerImage.push('latest')
-        //             }
-        //         }
-        //     }
-        // }
+        stage('Build') {
+            steps {
+                script {
+                    echo 'Building image for deployment..'
+                    dockerImage = docker.build registry + ":v$BUILD_NUMBER" 
+                    echo 'Pushing image to dockerhub..'
+                    docker.withRegistry( '', registryCredential ) {
+                        dockerImage.push()
+                        dockerImage.push('latest')
+                    }
+                }
+            }
+        }
 
         stage('Deploy to Google Kubernetes Engine') {
             agent {
@@ -46,6 +46,12 @@ pipeline {
                         sh("helm upgrade --install  model-deployment ./helm_charts/model-deployment")
                     }
                 }
+            }
+        }
+        
+        stage('test') {
+            steps {
+                echo 'test'
             }
         }
     }
