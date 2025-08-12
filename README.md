@@ -1,6 +1,18 @@
 # MLOps Demo Deployment - OCR API
 
-A comprehensive MLOps demo showcasing the deployment of an OCR (Optical Character Recognition) API using modern DevOps practices, including containerization, Kubernetes orchestration, CI/CD pipelines, infrastructure as code, and monitoring.
+<div align="center">
+
+![MLOps Workflow](images/workflow.png)
+
+*A comprehensive MLOps demo showcasing the deployment of an OCR (Optical Character Recognition) API using modern DevOps practices*
+
+[![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://docker.com)
+[![Kubernetes](https://img.shields.io/badge/Kubernetes-326CE5?style=for-the-badge&logo=kubernetes&logoColor=white)](https://kubernetes.io)
+[![Jenkins](https://img.shields.io/badge/Jenkins-D24939?style=for-the-badge&logo=Jenkins&logoColor=white)](https://jenkins.io)
+[![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
+[![Terraform](https://img.shields.io/badge/Terraform-7B42BC?style=for-the-badge&logo=terraform&logoColor=white)](https://terraform.io)
+
+</div>
 
 ## 🚀 Project Overview
 
@@ -11,39 +23,38 @@ This project demonstrates a complete MLOps workflow for deploying a FastAPI-base
 - **Kubernetes Deployment**: Helm charts for orchestration
 - **CI/CD Pipeline**: Jenkins-based automated deployment
 - **Infrastructure as Code**: Terraform and Ansible for infrastructure management
-- **Monitoring Stack**: Prometheus and Grafana for observability
 - **Ingress Controller**: Nginx ingress for external access
 
 ## 📁 Project Structure
 
 ```
 demo_deployment/
-├── app/                    # FastAPI OCR application
-│   ├── main.py            # Main application code
-│   ├── requirements.txt   # Python dependencies
-│   └── Dockerfile         # Container configuration
-├── cicd/                  # CI/CD configuration
-│   └── Jenkinsfile        # Jenkins pipeline
-├── helm_charts/           # Kubernetes Helm charts
-│   ├── model-deployment/  # OCR app deployment
-│   ├── monitoring/        # Prometheus/Grafana stack
-│   └── nginx-ingress/     # Ingress controller
-├── iac/                   # Infrastructure as Code
-│   ├── terraform/         # Terraform configurations
-│   └── ansible/           # Ansible playbooks
-├── example/               # Sample images for testing
-└── Makefile              # Build and deployment commands
+├── 📁 app/                    # FastAPI OCR application
+│   ├── main.py               # Main application code
+│   ├── requirements.txt      # Python dependencies
+│   └── Dockerfile           # Container configuration
+├── 📁 cicd/                  # CI/CD configuration
+│   └── Jenkinsfile          # Jenkins pipeline
+├── 📁 helm_charts/           # Kubernetes Helm charts
+│   ├── model-deployment/    # OCR app deployment
+│   └── nginx-ingress/       # Ingress controller
+├── 📁 iac/                   # Infrastructure as Code
+│   ├── terraform/           # Terraform configurations
+│   └── ansible/             # Ansible playbooks
+├── 📁 images/                # Project images and diagrams
+├── 📁 example/               # Sample images for testing
+└── Makefile                 # Build and deployment commands
 ```
 
 ## 🛠️ Prerequisites
 
-- Docker
-- Kubernetes cluster (GKE, EKS, or local like Minikube)
-- Helm 3.x
-- Terraform
-- Ansible
-- Jenkins (for CI/CD)
-- kubectl configured
+- [Docker](https://docs.docker.com/get-docker/)
+- [Kubernetes cluster](https://kubernetes.io/docs/setup/) (GKE, EKS, or local like Minikube)
+- [Helm 3.x](https://helm.sh/docs/intro/install/)
+- [Terraform](https://www.terraform.io/downloads)
+- [Ansible](https://docs.ansible.com/ansible/latest/installation_guide/intro_installation.html)
+- [Jenkins](https://www.jenkins.io/doc/book/installing/) (for CI/CD)
+- [kubectl](https://kubernetes.io/docs/tasks/tools/) configured
 
 ## 🚀 Quick Start
 
@@ -73,6 +84,13 @@ curl -X POST "http://localhost:8080/ocr/" \
      -H "accept: application/json" \
      -H "Content-Type: multipart/form-data" \
      -F "file=@example/1.jpg"
+```
+
+**Example Response:**
+```json
+{
+  "extracted_text": "Hello World! This is sample text extracted from the image."
+}
 ```
 
 ### 3. Kubernetes Deployment
@@ -128,12 +146,7 @@ The project includes comprehensive Helm charts for:
    - Configures services and ingress
    - Includes resource limits and health checks
 
-2. **Monitoring Stack** (`helm_charts/monitoring/`)
-   - Prometheus for metrics collection
-   - Grafana for visualization
-   - Pre-configured dashboards for application monitoring
-
-3. **Nginx Ingress** (`helm_charts/nginx-ingress/`)
+2. **Nginx Ingress** (`helm_charts/nginx-ingress/`)
    - Load balancing and SSL termination
    - Path-based routing
    - Rate limiting and security features
@@ -166,15 +179,6 @@ The Jenkins pipeline (`cicd/Jenkinsfile`) includes:
 - Application deployment automation
 - Configuration management
 
-### Monitoring and Observability
-
-The monitoring stack provides:
-
-- **Metrics Collection**: Prometheus scrapes application metrics
-- **Visualization**: Grafana dashboards for real-time monitoring
-- **Alerting**: Configurable alert rules for critical issues
-- **Log Aggregation**: Centralized logging (can be extended)
-
 ## 🔧 Configuration
 
 ### Environment Variables
@@ -192,7 +196,6 @@ Customize deployments by modifying the `values.yaml` files in each Helm chart:
 - Resource limits
 - Environment variables
 - Ingress configurations
-- Monitoring settings
 
 ## 🧪 Testing
 
@@ -207,10 +210,10 @@ Customize deployments by modifying the `values.yaml` files in each Helm chart:
 2. **Kubernetes Testing**:
    ```bash
    # Get the service URL
-   kubectl get svc -n default
+   kubectl get svc -n model-serving
    
    # Test the API
-   curl -X POST "http://<service-ip>:8080/ocr/" -F "file=@example/1.jpg"
+   curl -X POST "http://<service-ip>:30000/ocr/" -F "file=@example/1.jpg"
    ```
 
 ### Automated Testing
@@ -220,19 +223,6 @@ The CI/CD pipeline includes a test stage that can be extended with:
 - Integration tests for the API endpoints
 - Load testing for performance validation
 - Security scanning
-
-## 📊 Monitoring
-
-Access monitoring dashboards:
-
-- **Grafana**: `http://<cluster-ip>:3000` (default: admin/admin)
-- **Prometheus**: `http://<cluster-ip>:9090`
-
-Key metrics to monitor:
-- API response times
-- Error rates
-- Resource utilization
-- OCR processing accuracy
 
 ## 🔒 Security Considerations
 
@@ -248,10 +238,10 @@ The application supports horizontal scaling:
 
 ```bash
 # Scale the deployment
-kubectl scale deployment model-deployment --replicas=5
+kubectl scale deployment model-deployment --replicas=5 -n model-serving
 
 # Or update via Helm
-helm upgrade model-deployment ./helm_charts/model-deployment --set replicaCount=5
+helm upgrade model-deployment helm_charts/model-deployment --set replicas=5 -n model-serving
 ```
 
 ## 🛠️ Troubleshooting
@@ -261,28 +251,36 @@ helm upgrade model-deployment ./helm_charts/model-deployment --set replicaCount=
 1. **Tesseract not found**: Ensure the Docker image includes Tesseract installation
 2. **Image processing errors**: Check supported image formats and file sizes
 3. **Kubernetes deployment issues**: Verify Helm chart values and cluster resources
-4. **Monitoring not working**: Check Prometheus service discovery and targets
-5. **Jenkins build failures**: 
-   - Check workspace structure with `./debug-workspace.sh`
-   - Verify Docker build locally with `./test-docker-build.sh`
+4. **Jenkins build failures**: 
    - Ensure Docker Hub credentials are configured in Jenkins
    - Check that the app directory is properly cloned in Jenkins workspace
+   - Verify Docker build locally before running in Jenkins
 
 ### Debug Commands
 
 ```bash
 # Check pod logs
-kubectl logs -f deployment/model-deployment
+kubectl logs -f deployment/model-deployment -n model-serving
 
 # Check pod status
-kubectl get pods -l app=model-deployment
+kubectl get pods -l app=model-deployment -n model-serving
 
 # Check service endpoints
-kubectl get endpoints model-deployment
+kubectl get endpoints model-deployment -n model-serving
 
 # Check ingress status
-kubectl get ingress
+kubectl get ingress -n model-serving
+
+# Check Helm releases
+helm list -n model-serving
 ```
+
+## 🎯 API Documentation
+
+Once the application is running, you can access the interactive API documentation:
+
+- **Swagger UI**: `http://localhost:8080/docs`
+- **ReDoc**: `http://localhost:8080/redoc`
 
 ## 🤝 Contributing
 
@@ -303,11 +301,16 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## 🙏 Acknowledgments
 
-- FastAPI for the web framework
-- Tesseract for OCR capabilities
-- Kubernetes community for orchestration tools
-- Prometheus and Grafana for monitoring solutions
+- [FastAPI](https://fastapi.tiangolo.com/) for the web framework
+- [Tesseract](https://github.com/tesseract-ocr/tesseract) for OCR capabilities
+- [Kubernetes](https://kubernetes.io/) community for orchestration tools
+- [Helm](https://helm.sh/) for package management
+- [Jenkins](https://www.jenkins.io/) for CI/CD automation
 
 ---
 
-For more detailed information about each component, please refer to the individual README files in each directory.
+<div align="center">
+
+**⭐ Star this repository if you find it helpful!**
+
+</div>
