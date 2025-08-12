@@ -14,20 +14,24 @@ pipeline {
     }
 
     stages {
-        stage('Build') {
+        stage('Building Image') {
             steps {
                 script {
                     echo 'Building image for deployment..'
-                    dockerImage = docker.build registry + ":v$BUILD_NUMBER" 
-                    echo 'Pushing image to dockerhub..'
-                    docker.withRegistry( '', registryCredential ) {
-                        dockerImage.push()
-                        dockerImage.push('latest')
+                    dockerImage = docker.build("${registry}", "-f app/Dockerfile app")
+                    dockerImage.tag("latest")
+                }
+            }
+        }
+        stage('Pushing Image') {
+            steps{
+                script {
+                    docker.withRegistry( 'https://registry.hub.docker.com', registryCredential ) {
+                        dockerImage.push("latest")
                     }
                 }
             }
         }
-
         stage('Deploy to Google Kubernetes Engine') {
             agent {
                 kubernetes {
@@ -40,10 +44,10 @@ pipeline {
             steps {
                 script {
                     container('helm') {
-                        sh("helm upgrade --install  nginx-ingress ./helm_charts/nginx-ingress")
+                        sh("helm upgrade --install  nginx-ingress helm_charts/nginx-ingress")
                     }
                     container('helm') {
-                        sh("helm upgrade --install  model-deployment ./helm_charts/model-deployment")
+                        sh("helm upgrade --install  model-deployment helm_charts/model-deployment")
                     }
                 }
             }
@@ -53,6 +57,19 @@ pipeline {
             steps {
                 echo 'test'
             }
+        }
+    }
+    
+    post {
+        always {
+            // Clean up workspace
+            cleanWs()
+        }
+        success {
+            echo 'Pipeline completed successfully!'
+        }
+        failure {
+            echo 'Pipeline failed!'
         }
     }
 }
