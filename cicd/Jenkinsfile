@@ -18,10 +18,6 @@ pipeline {
             steps {
                 script {
                     echo 'Building image for deployment..'
-                    // Check if app directory exists
-                    sh 'ls -la'
-                    sh 'ls -la app/ || echo "app directory not found"'
-                    
                     dockerImage = docker.build("${registry}", "-f app/Dockerfile app")
                     dockerImage.tag("latest")
                 }
@@ -36,26 +32,26 @@ pipeline {
                 }
             }
         }
-        // stage('Deploy to Google Kubernetes Engine') {
-        //     agent {
-        //         kubernetes {
-        //             containerTemplate {
-        //                 name 'helm' // Name of the container to be used for helm upgrade
-        //                 image 'khoacao2002/jenkins_custom:v1' // The image containing helm
-        //             }
-        //         }
-        //     }
-        //     steps {
-        //         script {
-        //             container('helm') {
-        //                 sh("helm upgrade --install  nginx-ingress helm_charts/nginx-ingress")
-        //             }
-        //             container('helm') {
-        //                 sh("helm upgrade --install  model-deployment helm_charts/model-deployment")
-        //             }
-        //         }
-        //     }
-        // }
+        stage('Deploy to Google Kubernetes Engine') {
+            agent {
+                kubernetes {
+                    containerTemplate {
+                        name 'helm' // Name of the container to be used for helm upgrade
+                        image 'khoacao2002/jenkins_custom' // The image containing helm
+                    }
+                }
+            }
+            steps {
+                script {
+                    container('helm') {
+                        sh("helm upgrade --install  nginx-ingress helm_charts/nginx-ingress")
+                    }
+                    container('helm') {
+                        sh("helm upgrade --install  model-deployment helm_charts/model-deployment")
+                    }
+                }
+            }
+        }
         
         stage('test') {
             steps {
