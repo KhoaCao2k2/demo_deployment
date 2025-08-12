@@ -24,7 +24,7 @@ pipeline {
                     sh 'ls -la app/ || echo "app directory not found"'
                     
                     dockerImage = docker.build("${registry}:${IMAGE_TAG}", "-f app/Dockerfile app")
-                    dockerImage.tag("${registry}:latest")
+                    dockerImage.tag("latest")
                 }
             }
         }
