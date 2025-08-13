@@ -34,7 +34,8 @@ demo_deployment/
 │   ├── requirements.txt      # Python dependencies
 │   └── Dockerfile           # Container configuration
 ├── 📁 cicd/                  # CI/CD configuration
-│   └── Jenkinsfile          # Jenkins pipeline
+│   ├── Jenkinsfile          # Jenkins pipeline
+│   └── jenkins-admin-token.yaml  # GKE admin token for CI/CD
 ├── 📁 helm_charts/           # Kubernetes Helm charts
 │   ├── model-deployment/    # OCR app deployment
 │   └── nginx-ingress/       # Ingress controller
@@ -55,6 +56,177 @@ demo_deployment/
 - [Ansible](https://docs.ansible.com/ansible/latest/installation_guide/intro_installation.html)
 - [Jenkins](https://www.jenkins.io/doc/book/installing/) (for CI/CD)
 - [kubectl](https://kubernetes.io/docs/tasks/tools/) configured
+- [Google Cloud SDK](https://cloud.google.com/sdk/docs/install) (for GKE access)
+
+## 🔐 CI/CD Setup Instructions
+
+### 1. DockerHub Credentials Setup
+
+#### Step 1: Create DockerHub Access Token
+1. Log in to [DockerHub](https://hub.docker.com/)
+2. Go to **Account Settings** → **Security**
+3. Click **New Access Token**
+4. Give it a name (e.g., "Jenkins CI/CD")
+5. Copy the generated token (you won't see it again)
+
+#### Step 2: Add DockerHub Credentials to Jenkins
+1. Open Jenkins dashboard
+2. Go to **Manage Jenkins** → **Manage Credentials**
+3. Click **System** → **Global credentials** → **Add Credentials**
+4. Configure as follows:
+   - **Kind**: Username with password
+   - **Scope**: Global
+   - **Username**: Your DockerHub username
+   - **Password**: Your DockerHub access token (not your account password)
+   - **ID**: `dockerhub-credentials`
+   - **Description**: DockerHub credentials for CI/CD
+
+#### Step 3: Update Jenkinsfile
+The Jenkinsfile should reference the credentials:
+```groovy
+withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+    sh 'docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD'
+}
+```
+
+### 2. GKE Admin Key Setup for CI/CD
+
+#### Step 1: Create Service Account for Jenkins
+```bash
+# Set your project ID
+export PROJECT_ID="your-gcp-project-id"
+export CLUSTER_NAME="your-gke-cluster-name"
+export ZONE="your-gke-zone"
+
+# Create service account
+gcloud iam service-accounts create jenkins-gke-sa \
+    --display-name="Jenkins GKE Service Account" \
+    --description="Service account for Jenkins to access GKE"
+
+# Get the service account email
+export SA_EMAIL="jenkins-gke-sa@${PROJECT_ID}.iam.gserviceaccount.com"
+```
+
+#### Step 2: Assign Required Roles
+```bash
+# Grant Kubernetes Admin role
+gcloud projects add-iam-policy-binding ${PROJECT_ID} \
+    --member="serviceAccount:${SA_EMAIL}" \
+    --role="roles/container.admin"
+
+# Grant Storage Admin role (for pulling images)
+gcloud projects add-iam-policy-binding ${PROJECT_ID} \
+    --member="serviceAccount:${SA_EMAIL}" \
+    --role="roles/storage.admin"
+
+# Grant Compute Admin role (if needed for node management)
+gcloud projects add-iam-policy-binding ${PROJECT_ID} \
+    --member="serviceAccount:${SA_EMAIL}" \
+    --role="roles/compute.admin"
+```
+
+#### Step 3: Create and Download Service Account Key
+```bash
+# Create service account key
+gcloud iam service-accounts keys create jenkins-gke-key.json \
+    --iam-account=${SA_EMAIL}
+
+# The key file will be downloaded to your current directory
+```
+
+#### Step 4: Add GKE Credentials to Jenkins
+1. In Jenkins, go to **Manage Jenkins** → **Manage Credentials**
+2. Click **System** → **Global credentials** → **Add Credentials**
+3. Configure as follows:
+   - **Kind**: Secret file
+   - **Scope**: Global
+   - **File**: Upload the `jenkins-gke-key.json` file
+   - **ID**: `gke-service-account-key`
+   - **Description**: GKE service account key for CI/CD
+
+#### Step 5: Update Jenkinsfile for GKE Access
+```groovy
+pipeline {
+    agent any
+    
+    environment {
+        PROJECT_ID = 'your-gcp-project-id'
+        CLUSTER_NAME = 'your-gke-cluster-name'
+        ZONE = 'your-gke-zone'
+    }
+    
+    stages {
+        stage('Setup GKE Access') {
+            steps {
+                withCredentials([file(credentialsId: 'gke-service-account-key', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
+                    sh '''
+                        gcloud auth activate-service-account --key-file=$GOOGLE_APPLICATION_CREDENTIALS
+                        gcloud config set project ${PROJECT_ID}
+                        gcloud container clusters get-credentials ${CLUSTER_NAME} --zone=${ZONE}
+                    '''
+                }
+            }
+        }
+        
+        stage('Build and Deploy') {
+            steps {
+                // Your existing build and deploy steps
+            }
+        }
+    }
+}
+```
+
+### 3. Host Configuration for GKE Access
+
+<div align="center">
+
+![GKE Host Configuration](images/host.png)
+
+*GKE cluster host configuration and access setup*
+
+</div>
+
+#### Option 1: Using gcloud CLI (Recommended)
+```bash
+# Install Google Cloud SDK if not already installed
+# https://cloud.google.com/sdk/docs/install
+
+# Authenticate with your Google account
+gcloud auth login
+
+# Set your project
+gcloud config set project YOUR_PROJECT_ID
+
+# Get credentials for your GKE cluster
+gcloud container clusters get-credentials YOUR_CLUSTER_NAME --zone=YOUR_ZONE
+
+# Verify connection
+kubectl cluster-info
+```
+
+#### Option 2: Using Service Account Key
+```bash
+# Set the service account key path
+export GOOGLE_APPLICATION_CREDENTIALS="/path/to/your/service-account-key.json"
+
+# Get cluster credentials
+gcloud container clusters get-credentials YOUR_CLUSTER_NAME --zone=YOUR_ZONE
+
+# Verify connection
+kubectl cluster-info
+```
+
+#### Option 3: Direct kubeconfig (for CI/CD)
+```bash
+# Generate kubeconfig for service account
+gcloud container clusters get-credentials YOUR_CLUSTER_NAME \
+    --zone=YOUR_ZONE \
+    --project=YOUR_PROJECT_ID
+
+# Copy kubeconfig to Jenkins
+cp ~/.kube/config /path/to/jenkins/kubeconfig
+```
 
 ## 🚀 Quick Start
 
@@ -92,6 +264,14 @@ curl -X POST "http://localhost:8080/ocr/" \
   "extracted_text": "Hello World! This is sample text extracted from the image."
 }
 ```
+
+<div align="center">
+
+![API Result Example](images/api_result.png)
+
+*Example of OCR API response showing extracted text from an image*
+
+</div>
 
 ### 3. Kubernetes Deployment
 
@@ -153,17 +333,27 @@ The project includes comprehensive Helm charts for:
 
 ### CI/CD Pipeline
 
+<div align="center">
+
+![CI/CD Pipeline](images/cicd.png)
+
+*Jenkins CI/CD pipeline workflow and stages*
+
+</div>
+
 The Jenkins pipeline (`cicd/Jenkinsfile`) includes:
 
-1. **Build Stage**: Docker image building and pushing to registry
-2. **Deploy Stage**: Helm-based deployment to Kubernetes
-3. **Test Stage**: Automated testing (placeholder for future expansion)
+1. **Setup Stage**: Configure GKE access and DockerHub credentials
+2. **Build Stage**: Docker image building and pushing to registry
+3. **Deploy Stage**: Helm-based deployment to Kubernetes
+4. **Test Stage**: Automated testing (placeholder for future expansion)
 
 **Pipeline Features:**
 - Automated image versioning
 - Multi-environment deployment support
 - Build artifact retention
 - Timestamp logging
+- Secure credential management
 
 ### Infrastructure as Code
 
@@ -197,7 +387,24 @@ Customize deployments by modifying the `values.yaml` files in each Helm chart:
 - Environment variables
 - Ingress configurations
 
-## 🧪 Testing
+### CI/CD Environment Variables
+
+Set these in Jenkins:
+- `DOCKERHUB_USERNAME`: Your DockerHub username
+- `DOCKERHUB_PASSWORD`: Your DockerHub access token
+- `GCP_PROJECT_ID`: Your Google Cloud project ID
+- `GKE_CLUSTER_NAME`: Your GKE cluster name
+- `GKE_ZONE`: Your GKE cluster zone
+
+## 🧪 Testing & Monitoring
+
+<div align="center">
+
+![Monitoring Dashboard](images/monitor.png)
+
+*Kubernetes monitoring dashboard showing cluster metrics and application performance*
+
+</div>
 
 ### Manual Testing
 
@@ -224,6 +431,14 @@ The CI/CD pipeline includes a test stage that can be extended with:
 - Load testing for performance validation
 - Security scanning
 
+### Monitoring & Observability
+
+The project includes comprehensive monitoring capabilities:
+- **Prometheus**: Metrics collection and alerting
+- **Grafana**: Visualization dashboards
+- **Kubernetes Metrics**: Cluster and pod monitoring
+- **Application Metrics**: Custom OCR API metrics
+
 ## 🔒 Security Considerations
 
 - Container images are scanned for vulnerabilities
@@ -231,6 +446,8 @@ The CI/CD pipeline includes a test stage that can be extended with:
 - Network policies restrict pod-to-pod communication
 - RBAC is configured for proper access control
 - Ingress includes rate limiting and SSL termination
+- Service account keys are stored securely in Jenkins credentials
+- DockerHub access tokens are used instead of passwords
 
 ## 🚀 Scaling
 
@@ -255,6 +472,29 @@ helm upgrade model-deployment helm_charts/model-deployment --set replicas=5 -n m
    - Ensure Docker Hub credentials are configured in Jenkins
    - Check that the app directory is properly cloned in Jenkins workspace
    - Verify Docker build locally before running in Jenkins
+   - Ensure GKE service account has proper permissions
+
+### GKE Access Issues
+
+1. **Authentication failed**:
+   ```bash
+   # Re-authenticate with gcloud
+   gcloud auth login
+   gcloud config set project YOUR_PROJECT_ID
+   gcloud container clusters get-credentials YOUR_CLUSTER_NAME --zone=YOUR_ZONE
+   ```
+
+2. **Permission denied**:
+   ```bash
+   # Check your current permissions
+   gcloud projects get-iam-policy YOUR_PROJECT_ID --flatten="bindings[].members" --format="table(bindings.role)" --filter="bindings.members:user:YOUR_EMAIL"
+   ```
+
+3. **Cluster not found**:
+   ```bash
+   # List available clusters
+   gcloud container clusters list --project=YOUR_PROJECT_ID
+   ```
 
 ### Debug Commands
 
@@ -273,6 +513,12 @@ kubectl get ingress -n model-serving
 
 # Check Helm releases
 helm list -n model-serving
+
+# Check GKE cluster info
+kubectl cluster-info
+
+# Check current context
+kubectl config current-context
 ```
 
 ## 🎯 API Documentation

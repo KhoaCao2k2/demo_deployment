@@ -30,7 +30,9 @@ destroy-infra:
 helm-chart:
 	cd helm_charts/nginx-ingress && helm install nginx-ingress .
 	cd helm_charts/model-deployment && helm install model-deployment .
-	helm upgrade --install -f helm_charts/monitoring/kube-prometheus-stack.expanded.yaml kube-prometheus-stack helm_charts/monitoring/kube-prometheus-stack -n monitoring
+	cd helm_charts/prometheus-operator-crds && kubectl create ns monitoring && kubens monitoring && helm upgrade --install prometheus-crds .
+	cd helm_charts/prometheus && kubens monitoring && helm upgrade --install prometheus .
+	cd helm_charts/grafana && kubens monitoring && helm upgrade --install grafana .
 
 uninstall-helm-chart:
 	helm uninstall nginx-ingress
@@ -42,6 +44,4 @@ set-up-gce:
 
 set-up-jenkins:
 	ansible-playbook -i iac/ansible/inventory iac/ansible/setup-jenkins/jenkins.yaml
-
-
 
